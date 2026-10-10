@@ -11,9 +11,16 @@ import {
 
 export const MAX_BODY_BYTES = 32 * 1024;
 
-// Origins the Capacitor WebView sends: iOS uses the custom scheme, Android https.
-// Localhost dev servers are for `npm run dev` / `vite preview` only.
-export const DEFAULT_ALLOWED_ORIGINS = ['capacitor://localhost', 'https://localhost', 'http://localhost:5173', 'http://localhost:4173'];
+// Origins allowed to call the function from a browser/WebView:
+// the published web app (GitHub Pages), the iOS (custom scheme) and Android (https) Capacitor
+// shells, and localhost dev servers for `npm run dev` / `vite preview`.
+export const DEFAULT_ALLOWED_ORIGINS = [
+  'https://xamad558-gif.github.io',
+  'capacitor://localhost',
+  'https://localhost',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
 
 /**
  * @param {object} deps

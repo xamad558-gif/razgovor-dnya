@@ -1,7 +1,6 @@
 # Publishes the web app (installable on iPhone from Safari) to GitHub Pages on every push to main.
 # Repository → Settings → Pages → Source: "GitHub Actions".
-# Optional public values (Settings → Secrets and variables → Actions → Variables):
-#   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY  (enable the conversation once the backend is deployed)
+# Public Supabase config (project URL + publishable key) is read from .env.production.
 name: pages
 on:
   push:
@@ -25,10 +24,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - run: npm run build   # public Supabase config comes from .env.production
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

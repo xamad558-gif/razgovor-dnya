@@ -29,7 +29,7 @@ npx supabase secrets set --env-file supabase/functions/.env
 | `ANTHROPIC_API_KEY` | (required) | Anthropic key, from console.anthropic.com → API Keys |
 | `AI_MODEL` | `claude-opus-5-5` | Model for all tasks. Change only after comparing quality (see ADR 0002) |
 | `AI_DAILY_LIMIT` | `60` | AI requests per user per UTC day (one chat message = one request) |
-| `ALLOWED_ORIGINS` | `capacitor://localhost,https://localhost,http://localhost:5173,http://localhost:4173` | `capacitor://localhost` is the iPhone app, `https://localhost` Android; the rest are dev servers |
+| `ALLOWED_ORIGINS` | `https://xamad558-gif.github.io,capacitor://localhost,https://localhost,http://localhost:5173,http://localhost:4173` | the published web app, the iPhone app, Android, and dev servers |
 
 ## 4. Deploy the function
 ```bash

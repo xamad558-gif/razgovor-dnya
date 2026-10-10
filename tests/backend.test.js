@@ -40,6 +40,7 @@ describe('ai function handler', () => {
   });
   it('allows the iOS app origin (capacitor://localhost) by default', async () => {
     expect(DEFAULT_ALLOWED_ORIGINS).toContain('capacitor://localhost');
+    expect(DEFAULT_ALLOWED_ORIGINS).toContain('https://xamad558-gif.github.io'); // published web app
     const { handle } = setup({ allowedOrigins: DEFAULT_ALLOWED_ORIGINS });
     const r = await handle(post(chatBody, { origin: 'capacitor://localhost' }));
     expect(r.status).toBe(200);
