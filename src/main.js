@@ -120,7 +120,7 @@ function renderChat() {
   const err = lastError || (!busy && lastIsMine() && !S.chat.finished ? 'pending' : null);
   if (err && !busy) {
     const msg = err === 'pending' ? 'رسالتك الأخيرة لم يُرد عليها بعد.' : AI_ERROR_AR[err] || AI_ERROR_AR.network;
-    h += `<div class="err" role="alert"><span>${esc(msg)}</span>` + (!['not_configured', 'quota_exceeded', 'refused'].includes(err) ? '<button class="ghost" style="padding:3px 10px" data-act="retry">أعد المحاولة</button>' : '') + '</div>';
+    h += `<div class="err" role="alert"><span>${esc(msg)}</span>` + (!['not_configured', 'quota_exceeded', 'refused', 'billing'].includes(err) ? '<button class="ghost" style="padding:3px 10px" data-act="retry">أعد المحاولة</button>' : '') + '</div>';
   }
   $('chat').innerHTML = h + '</div>';
 }

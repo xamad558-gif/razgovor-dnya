@@ -230,5 +230,6 @@ export const ERRORS = {
   server: { status: 502, retryable: true },
   invalid_response: { status: 502, retryable: true },
   unavailable: { status: 503, retryable: true },
+  billing: { status: 503, retryable: false }, // provider account has no credit: an operator must top up
   timeout: { status: 504, retryable: true },
 };

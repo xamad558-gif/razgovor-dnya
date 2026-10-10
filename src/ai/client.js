@@ -10,7 +10,7 @@ const cfg = {
   getToken: async () => '', // returns the user's access token (see auth/session.js)
 };
 
-const SERVER_CODES = ['invalid_request', 'unauthorized', 'payload_too_large', 'refused', 'quota_exceeded', 'server', 'invalid_response', 'unavailable', 'timeout'];
+const SERVER_CODES = ['billing', 'invalid_request', 'unauthorized', 'payload_too_large', 'refused', 'quota_exceeded', 'server', 'invalid_response', 'unavailable', 'timeout'];
 
 export function configureAI(overrides) {
   Object.assign(cfg, overrides);
@@ -82,6 +82,7 @@ export const AI_ERROR_AR = {
   refused: 'لا أستطيع المتابعة في هذه الجملة. جرّب صياغة أخرى أو موضوعًا آخر.',
   payload_too_large: 'الرسالة طويلة جدًا. اختصرها ثم أرسلها.',
   unavailable: 'الخدمة مزدحمة الآن. أعد المحاولة بعد دقيقة.',
+  billing: 'خدمة المحادثة متوقفة مؤقتًا لأن رصيد حساب الذكاء الاصطناعي نفد. البطاقات والمراجعة تعمل كالمعتاد.',
   unauthorized: 'انتهت جلستك. أعد فتح التطبيق ثم حاول مرة أخرى.',
   invalid_request: 'الطلب غير صالح. أعد المحاولة.',
   server: 'الخادم لا يستجيب الآن. أعد المحاولة بعد قليل.',

@@ -117,6 +117,11 @@ export function createHandler(deps) {
       const status = Number(e?.status) || 0;
       entry.status = 'provider_error_' + (status || e?.code || 'unknown');
       if (e?.code === 'timeout' || e?.name === 'APIConnectionTimeoutError') return finish(fail('timeout', origin, requestId));
+      const providerMsg = String(e?.error?.error?.message ?? e?.message ?? '');
+      if (/credit balance|billing/i.test(providerMsg)) {
+        entry.status = 'provider_billing';
+        return finish(fail('billing', origin, requestId));
+      }
       if (status === 429 || status === 529 || status === 503) return finish(fail('unavailable', origin, requestId));
       return finish(fail('server', origin, requestId));
     }

@@ -111,6 +111,14 @@ describe('ai function handler', () => {
     expect((await setup({ callModel: err({ name: 'APIConnectionTimeoutError' }) }).handle(post(chatBody))).status).toBe(504);
     expect((await setup({ callModel: err({ status: 500 }) }).handle(post(chatBody))).status).toBe(502);
   });
+  it('reports an exhausted provider balance as "billing", not a generic server error', async () => {
+    const err = Object.assign(new Error('400'), { status: 400, error: { error: { type: 'invalid_request_error', message: 'Your credit balance is too low to access the Anthropic API.' } } });
+    const { handle, logs } = setup({ callModel: async () => { throw err; } });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(503);
+    expect(await r.json()).toMatchObject({ code: 'billing', retryable: false });
+    expect(logs[0].status).toBe('provider_billing');
+  });
   it('a logging failure never breaks the response', async () => {
     const { handle } = setup({ log: async () => { throw new Error('insert failed'); } });
     expect((await handle(post(chatBody))).status).toBe(200);
