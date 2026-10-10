@@ -45,8 +45,22 @@ const handle = createHandler({
 
   async callModel(body: Record<string, unknown>) {
     if (!apiKey) throw Object.assign(new Error('ANTHROPIC_API_KEY not set'), { status: 500 });
-    // deno-lint-ignore no-explicit-any
-    return await anthropic.beta.messages.create(body as any);
+    try {
+      // deno-lint-ignore no-explicit-any
+      return await anthropic.beta.messages.create(body as any);
+    } catch (e) {
+      // Provider error details (type + message, truncated) for diagnosis. API validation messages describe
+      // request parameters, not conversation text; the learner's text is never logged.
+      // deno-lint-ignore no-explicit-any
+      const err = e as any;
+      console.error(JSON.stringify({
+        level: 'error', msg: 'anthropic error', status: err?.status ?? null,
+        type: err?.error?.error?.type ?? err?.name ?? null,
+        message: String(err?.error?.error?.message ?? err?.message ?? '').slice(0, 500),
+        request_id: err?.request_id ?? err?.headers?.['request-id'] ?? null,
+      }));
+      throw e;
+    }
   },
 
   async log(entry: Record<string, unknown>) {
