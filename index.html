@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self' https://*.supabase.co http://localhost:*; worker-src 'self'; manifest-src 'self'">
+<title>Разговор дня</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" href="./favicon.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="theme-color" content="#185FA5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Разговор">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Разговор дня</div>
+    <div class="stats"><span id="net" class="net" hidden>غير متصل</span><span>🔥 <b id="stStreak">0</b> يوم</span><span>📖 <b id="stWords">0</b> كلمة</span></div>
+  </div>
+  <nav>
+    <button id="tabChat" class="on" data-tab="chat">المحادثة</button>
+    <button id="tabWords" data-tab="words">البطاقات</button>
+    <button id="tabProg" data-tab="prog">تقدّمي</button>
+  </nav>
+  <div id="notice" class="notice" hidden></div>
+
+  <section id="vChat">
+    <div id="sheet" class="sheet tear"></div>
+    <div id="chat"></div>
+    <div id="summaryBox"></div>
+  </section>
+
+  <section id="vWords" hidden>
+    <div class="panel"><h2>جدول المراجعة اليومي</h2><div id="sched"></div></div>
+    <div class="panel" id="revPanel"><h2>بطاقات المفردات</h2><div id="rev"></div></div>
+    <div class="panel"><h2>كل الكلمات</h2><div id="wordList" class="list"></div></div>
+  </section>
+
+  <section id="vProg" hidden>
+    <div class="panel">
+      <div class="big3">
+        <div><b id="pStreak">0</b>سلسلة الأيام</div>
+        <div><b id="pDays">0</b>محادثة مكتملة</div>
+        <div><b id="pWords">0</b>كلمة جديدة</div>
+      </div>
+    </div>
+    <div class="panel"><h2>آخر ٢٨ يومًا</h2><div id="grid" class="grid"></div></div>
+    <div class="panel">
+      <h2>التذكيرات اليومية</h2>
+      <p id="remWeb" class="small" hidden>نسخة الويب على الآيفون لا تستطيع جدولة تذكيرات من داخلها. تذكيراتك موجودة في تطبيق التذكيرات على الهاتف: ٩:٠٠ صباحًا للمراجعة، ٧:٠٠ مساءً للمحادثة، ٩:٣٠ مساءً للمراجعة.</p>
+      <div id="remNative">
+      <label class="switch"><input id="remOn" type="checkbox"> تفعيل التذكيرات</label>
+      <div class="set-row"><label for="remAm">☀️ مراجعة الصباح</label><input id="remAm" type="time"></div>
+      <div class="set-row"><label for="remChat">🗣️ محادثة اليوم</label><input id="remChat" type="time"></div>
+      <div class="set-row"><label for="remPm">🌙 مراجعة المساء</label><input id="remPm" type="time"></div>
+      <div class="tools"><button id="remSave" class="btn">احفظ التذكيرات</button></div>
+      <div id="remMsg" class="small" role="status"></div>
+      </div>
+    </div>
+    <div class="panel"><h2>محادثاتي السابقة</h2><div id="histList" class="list"></div><div id="histView"></div></div>
+    <div class="panel">
+      <h2>كيف تستفيد أكثر</h2>
+      <p>تحدّث ١٠–١٥ دقيقة كل يوم، فالاستمرار أهم من الطول. اكتب بالروسية حتى لو أخطأت، وإن علقت فاكتب بالعربية. اضغط 🔊 ثم ردّد الجملة بصوت عالٍ. وراجع بطاقاتك صباحًا ومساءً.</p>
+      <button id="resetBtn" class="ghost">مسح كل البيانات</button>
+      <div id="resetBox" class="confirm" hidden><span>سيُمسح كل تقدّمك. متأكد؟</span><button id="resetYes" class="btn">نعم، امسح</button><button id="resetNo" class="ghost">إلغاء</button></div>
+    </div>
+  </section>
+</div>
+
+<div id="composer" class="composer" hidden>
+  <div class="in">
+    <div id="hints" class="hints"></div>
+    <div class="crow">
+      <textarea id="inp" rows="1" lang="ru" dir="auto" placeholder="اكتب بالروسية… أو بالعربية إن علقت"></textarea>
+      <button id="sendBtn" class="btn">أرسل</button>
+    </div>
+    <div class="endbar"><span id="turnInfo"></span><button id="endBtn" class="ghost" hidden>إنهاء المحادثة والتقييم</button></div>
+  </div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

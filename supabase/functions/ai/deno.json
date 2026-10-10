@@ -1,0 +1,9 @@
+{
+  "nodeModulesDir": "none",
+  "compilerOptions": { "strict": true },
+  "imports": {
+    "@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@0.128.0",
+    "@supabase/server": "npm:@supabase/server@1.8.0",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.117.2"
+  }
+}

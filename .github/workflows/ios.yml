@@ -1,0 +1,30 @@
+# Compiles the iOS app on a GitHub macOS runner (no Mac needed locally) and runs all tests.
+# Unsigned simulator build: proves the native project, Swift packages and web bundle build together.
+# A signed build for a real iPhone / TestFlight needs an Apple Developer account (see docs/ios.md).
+name: ios
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Build for iOS Simulator (unsigned)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug CODE_SIGNING_ALLOWED=NO build | tail -n 40

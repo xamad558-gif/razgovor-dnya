@@ -1,0 +1,36 @@
+{
+  "name": "razgovor-dnya",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Разговор дня — daily Russian conversation, flash cards and review reminders for Arabic-speaking learners.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "check": "vitest run && vite build",
+    "android:sync": "vite build && cap sync android",
+    "android:open": "cap open android",
+    "ios:sync": "vite build && cap sync ios",
+    "ios:open": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor-community/text-to-speech": "8.0.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/preferences": "8.0.1",
+    "@fontsource/noto-naskh-arabic": "5.3.0",
+    "@fontsource/pt-sans": "5.3.0",
+    "@fontsource/pt-serif": "5.3.0",
+    "@supabase/supabase-js": "2.117.2"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/cli": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@electric-sql/pglite": "0.5.8",
+    "vite": "8.3.1",
+    "vitest": "5.0.3"
+  }
+}

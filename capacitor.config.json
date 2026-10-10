@@ -1,0 +1,9 @@
+{
+  "appId": "ru.razgovordnya.app",
+  "appName": "Разговор дня",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "LocalNotifications": { "iconColor": "#185FA5" }
+  }
+}
