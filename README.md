@@ -15,7 +15,7 @@ Prerequisites on your computer: Node.js 22+, Android Studio (with an SDK install
 
 ```bash
 npm install
-npm test               # 69 tests
+npm test               # 102 tests
 npm run android:sync   # builds the web app and copies it into android/
 npm run android:open   # opens Android Studio
 ```
@@ -27,12 +27,14 @@ To hear Russian (🔊), the phone needs a Russian voice: Settings → System →
 engine → install Russian voice data.
 
 ## Conversation backend
-Deploy once with `docs/deploy-backend.md` (Supabase + Anthropic key, ~20 min), then put the two public values in `.env`
-and rebuild. Without them the app still works offline (cards, reviews, reminders) and the chat tab says so.
+Deploy once with `docs/deploy-backend.md` (Supabase + a free GigaChat key from Sber, ~20 min; Anthropic also
+supported), then put the two public values in `.env` and rebuild. Without them the app still works offline (cards,
+reviews, reminders) and the chat tab says so.
 
 ## Status
 - Offline: flash cards, random-order reviews, morning/evening schedule, history, streaks, reminders.
-- Conversation: backend built and tested (69 tests, Deno type-check, boot test); waiting for deployment with your key.
+- Conversation: backend on GigaChat (Sber), 102 tests, Deno type-check, boot test; waiting for deployment with your
+  key. See ADR 0003 for the provider decision; `AI_PROVIDER=anthropic` keeps the Anthropic path available.
 - CI: `pages` publishes the web app on every push to `main`; `ios` compiles the iPhone app on a GitHub macOS runner.
 
 See `docs/assessment.md`, `docs/adr/`, `docs/requirements.md`.

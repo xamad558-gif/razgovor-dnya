@@ -219,6 +219,52 @@ export function responseText(message) {
   return (message?.content || []).filter((b) => b && b.type === 'text').map((b) => b.text).join('');
 }
 
+// ---------- provider selection and GigaChat contract ----------
+
+export const PROVIDERS = ['gigachat', 'anthropic'];
+export const DEFAULT_PROVIDER = 'gigachat';
+export const GIGACHAT_DEFAULT_MODELS = { chat: 'GigaChat-2-Max', evaluate: 'GigaChat-2-Max', topic: 'GigaChat-2-Pro' };
+export const GIGACHAT_TASK_SETTINGS = {
+  chat: { temperature: 0.5, maxTokens: 1500 },
+  evaluate: { temperature: 0.2, maxTokens: 1500 },
+  topic: { temperature: 0.9, maxTokens: 600 },
+};
+export const REPAIR_INSTRUCTION =
+  'Your previous reply was not valid JSON in the required format. Reply again with ONLY the JSON object in exactly the required format, with no other text.';
+
+/** Same prompt plus the invalid reply and a request to resend valid JSON. */
+export function buildRepairPrompt(prompt, badText) {
+  return {
+    system: prompt.system,
+    messages: [
+      ...prompt.messages,
+      { role: 'assistant', content: String(badText).slice(0, 4000) },
+      { role: 'user', content: REPAIR_INSTRUCTION },
+    ],
+  };
+}
+
+/**
+ * GigaChat /v1/chat/completions body. The system prompt becomes the first (only) system message.
+ * @param {{structured?: boolean, repairOf?: string}} [opts]
+ */
+export function buildGigaChatRequest(req, model, opts = {}) {
+  let prompt = buildPrompt(req);
+  if (opts.repairOf) prompt = buildRepairPrompt(prompt, opts.repairOf);
+  const settings = GIGACHAT_TASK_SETTINGS[req.task];
+  const messages = [{ role: 'system', content: prompt.system }, ...prompt.messages];
+  const body = {
+    model,
+    messages,
+    temperature: settings.temperature,
+    max_tokens: settings.maxTokens,
+  };
+  if (opts.structured) {
+    body.response_format = { type: 'json_schema', schema: SCHEMAS[req.task], strict: true };
+  }
+  return body;
+}
+
 /** Error codes the backend returns, with HTTP status and whether a retry may succeed. */
 export const ERRORS = {
   invalid_request: { status: 400, retryable: false },

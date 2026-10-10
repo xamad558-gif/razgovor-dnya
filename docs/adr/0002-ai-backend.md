@@ -1,6 +1,7 @@
 # ADR 0002: AI backend as one Supabase Edge Function
 
-**Status:** Accepted (Oct 2026)
+**Status:** Accepted (Oct 2026). Provider/model section superseded by [ADR 0003](0003-gigachat-provider.md): default
+provider is GigaChat; this Anthropic setup remains available with AI_PROVIDER=anthropic.
 
 ## Context
 The conversation needs Claude. The app must never hold the provider key, cost must be bounded per user, and the

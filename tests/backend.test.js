@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createHandler, MAX_BODY_BYTES, DEFAULT_ALLOWED_ORIGINS } from '../supabase/functions/_shared/handler.js';
-import { buildModelRequest, validateRequest, SCHEMAS, responseText } from '../supabase/functions/_shared/ai-contract.js';
+import { createHandler, MAX_BODY_BYTES, DEFAULT_ALLOWED_ORIGINS, REPAIR_IF_ELAPSED_UNDER_MS } from '../supabase/functions/_shared/handler.js';
+import { buildModelRequest, validateRequest, SCHEMAS, responseText, REPAIR_INSTRUCTION } from '../supabase/functions/_shared/ai-contract.js';
+import { createAnthropicProvider, createGigaChatProvider, GIGACHAT_AUTH_URL, ProviderError } from '../supabase/functions/_shared/providers.js';
 import { requestAI, configureAI } from '../src/ai/client.js';
 
 const topic = { ru: 'Погода', ar: 'الطقس', who: 'Аня', role: 'جارة', en: 'Anya chats about weather.' };
@@ -10,19 +11,56 @@ const modelMsg = (obj, extra = {}) => ({ model: 'claude-opus-5-5', stop_reason: 
 
 function setup(over = {}) {
   const logs = [];
+  const callModel = over.callModel || vi.fn(async () => modelMsg(chatOk));
   const deps = {
     allowedOrigins: [ORIGIN],
     authenticate: vi.fn(async (req) => (req.headers.get('authorization') === 'Bearer good' ? 'user-1' : null)),
     consumeQuota: vi.fn(async () => 1),
-    callModel: vi.fn(async () => modelMsg(chatOk)),
+    provider: createAnthropicProvider({ create: callModel, model: 'claude-opus-5-5' }),
     log: vi.fn(async (e) => { logs.push(e); }),
     dailyLimit: 60,
-    model: 'claude-opus-5-5',
     requestId: () => 'req-1',
     now: (() => { let t = 1000; return () => (t += 5); })(),
     ...over,
   };
+  deps.callModel = callModel; // exposed for assertions, as before
   return { handle: createHandler(deps), deps, logs };
+}
+
+function resJson(status, body, headers = {}) {
+  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } });
+}
+const gcChatOk = { reply: 'Привет!', reply_ar: 'مرحبا', words: [], correction: null, hints: [] };
+function gcCompletion({ finish_reason = 'stop', content = JSON.stringify(gcChatOk), model = 'GigaChat-2-Max:2.0.28.2', usage = { prompt_tokens: 100, completion_tokens: 50 } } = {}) {
+  return resJson(200, { model, choices: [{ finish_reason, message: { content } }], usage });
+}
+
+/** setup() with a GigaChat provider backed by a fake fetch; chatHandlers are consumed in order (last one repeats). */
+function setupGigaChat({ chatHandlers = [() => gcCompletion()], now, ...over } = {}) {
+  const calls = { oauth: 0, chat: [] };
+  const fetchImpl = vi.fn(async (url, init) => {
+    if (url === GIGACHAT_AUTH_URL) {
+      calls.oauth += 1;
+      return resJson(200, { access_token: 'tok-1', expires_at: Date.now() + 30 * 60 * 1000 });
+    }
+    const idx = Math.min(calls.chat.length, chatHandlers.length - 1);
+    const hdl = chatHandlers[idx];
+    calls.chat.push({ url, init });
+    return typeof hdl === 'function' ? hdl(init) : hdl;
+  });
+  const provider = createGigaChatProvider({
+    authKey: 'KEY==',
+    models: { chat: 'GigaChat-2-Max', evaluate: 'GigaChat-2-Max', topic: 'GigaChat-2-Pro' },
+    fetch: fetchImpl,
+    sleep: vi.fn(async () => {}),
+    uuid: () => '00000000-0000-4000-8000-000000000000',
+    log: vi.fn(),
+    now,
+  });
+  const setupOver = { provider, ...over };
+  if (now) setupOver.now = now;
+  const { handle, deps, logs } = setup(setupOver);
+  return { handle, deps, logs, calls, fetchImpl };
 }
 const post = (body, { auth = 'Bearer good', origin = ORIGIN, raw } = {}) => new Request('https://x.supabase.co/functions/v1/ai', {
   method: 'POST', headers: { authorization: auth, origin, 'content-type': 'application/json' }, body: raw ?? JSON.stringify(body),
@@ -122,6 +160,102 @@ describe('ai function handler', () => {
   it('a logging failure never breaks the response', async () => {
     const { handle } = setup({ log: async () => { throw new Error('insert failed'); } });
     expect((await handle(post(chatBody))).status).toBe(200);
+  });
+});
+
+describe('ai function handler: GigaChat provider', () => {
+  it('(a) 200 OK: validated reply, model string + token usage logged, no learner text', async () => {
+    const { handle, logs } = setupGigaChat();
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(200);
+    const b = await r.json();
+    expect(b.data.reply).toBe(gcChatOk.reply);
+    expect(logs[0]).toMatchObject({ status: 'ok', model: 'GigaChat-2-Max:2.0.28.2', input_tokens: 100, output_tokens: 50 });
+    expect(JSON.stringify(logs[0])).not.toMatch(/Привет, я Хамад/);
+  });
+
+  it('(b) blacklist finish_reason maps to refused (422)', async () => {
+    const { handle, logs } = setupGigaChat({ chatHandlers: [() => gcCompletion({ finish_reason: 'blacklist' })] });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(422);
+    expect((await r.json()).code).toBe('refused');
+    expect(logs[0].status).toBe('refused');
+  });
+
+  it('(c) length finish_reason maps to truncated (502, "response truncated")', async () => {
+    const { handle, logs } = setupGigaChat({ chatHandlers: [() => gcCompletion({ finish_reason: 'length' })] });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(502);
+    expect((await r.json()).message).toBe('response truncated');
+    expect(logs[0].status).toBe('truncated');
+  });
+
+  it('(d) invalid JSON then valid JSON: one repair call, status ok_repaired, tokens summed, quota consumed once', async () => {
+    const { handle, deps, logs, calls } = setupGigaChat({
+      chatHandlers: [() => gcCompletion({ content: 'not json at all' }), () => gcCompletion()],
+    });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(200);
+    expect(calls.chat).toHaveLength(2);
+    expect(deps.consumeQuota).toHaveBeenCalledTimes(1);
+    expect(logs[0].status).toBe('ok_repaired');
+    expect(logs[0].input_tokens).toBe(200);
+    expect(logs[0].output_tokens).toBe(100);
+    const secondBody = JSON.parse(calls.chat[1].init.body);
+    const lastTwo = secondBody.messages.slice(-2);
+    expect(lastTwo[0]).toEqual({ role: 'assistant', content: 'not json at all' });
+    expect(lastTwo[1]).toEqual({ role: 'user', content: REPAIR_INSTRUCTION });
+  });
+
+  it('(e) invalid JSON twice: invalid_output (502), exactly 2 chat calls', async () => {
+    const { handle, logs, calls } = setupGigaChat({
+      chatHandlers: [() => gcCompletion({ content: 'nope' }), () => gcCompletion({ content: 'still nope' })],
+    });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(502);
+    expect(calls.chat).toHaveLength(2);
+    expect(logs[0].status).toBe('invalid_output');
+  });
+
+  it('(f) skips the repair call when elapsed since start is already >= 25s (1 chat call)', async () => {
+    let t = 1_000_000;
+    const now = () => t;
+    const { handle, logs, calls } = setupGigaChat({
+      now,
+      chatHandlers: [() => { t += REPAIR_IF_ELAPSED_UNDER_MS + 5_000; return gcCompletion({ content: 'not json' }); }],
+    });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(502);
+    expect(calls.chat).toHaveLength(1);
+    expect(logs[0].status).toBe('invalid_output');
+  });
+
+  it('(g) the Anthropic provider never repairs invalid JSON (repairInvalidJson:false)', async () => {
+    const callModel = vi.fn(async () => modelMsg({ words: [] }));
+    const { handle, deps, logs } = setup({ callModel });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(502);
+    expect(deps.callModel).toHaveBeenCalledTimes(1);
+    expect(logs[0].status).toBe('invalid_output');
+  });
+
+  it('(h) GigaChat 402 (tokens exhausted) maps to billing, not a generic server error', async () => {
+    const { handle, logs } = setupGigaChat({ chatHandlers: [() => resJson(402, { message: 'no tokens left' })] });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(503);
+    expect(await r.json()).toMatchObject({ code: 'billing', retryable: false });
+    expect(logs[0].status).toBe('provider_billing');
+  });
+
+  it('(i) a not-configured provider maps to a 502 server error', async () => {
+    const provider = {
+      name: 'gigachat', repairInvalidJson: false, modelFor: () => null,
+      async complete() { throw new ProviderError('server', { status: 500, logStatus: 'provider_not_configured' }); },
+    };
+    const { handle, logs } = setup({ provider });
+    const r = await handle(post(chatBody));
+    expect(r.status).toBe(502);
+    expect(logs[0].status).toBe('provider_not_configured');
   });
 });
 
