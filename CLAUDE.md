@@ -15,6 +15,9 @@ Vite, vanilla ES modules. UI language Arabic (RTL); target language Russian.
 - Trivial edits (typo, copy text, one-line fix) can skip the plan.
 - Project skills in `.claude/skills/`: `webapp-to-capacitor`, `capacitor-best-practices`, `capacitor-app-development`,
   `supabase`, `claude-api`. Read the relevant one before working in its area.
+- UI design skills in `.claude/skills/`: `ui-ux-pro-max`, `design-taste-frontend`, `frontend-design`, `impeccable`,
+  `web-design-guidelines`. The `ui-designer` agent uses them to research reference designs and produce first-draft
+  HTML prototypes in `docs/ui-prototypes/<slug>/` (with screenshots and a comparison report) before UI work starts.
 - This workflow is about **building** the app. The model the app itself uses for conversations is a separate
   runtime setting (`AI_MODEL` secret, ADR 0002).
 
