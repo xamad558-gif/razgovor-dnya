@@ -221,8 +221,32 @@ export function responseText(message) {
 
 // ---------- provider selection and GigaChat contract ----------
 
-export const PROVIDERS = ['gigachat', 'anthropic'];
-export const DEFAULT_PROVIDER = 'gigachat';
+export const PROVIDERS = ['openrouter', 'gigachat', 'anthropic'];
+export const DEFAULT_PROVIDER = 'openrouter';
+export const OPENROUTER_DEFAULT_MODELS = ['google/gemma-4-31b-it:free', 'thinkingmachines/inkling:free', 'nvidia/nemotron-3-ultra-550b-a55b:free'];
+export const OPENROUTER_TASK_SETTINGS = {
+  chat: { temperature: 0.5, maxTokens: 3000 },
+  evaluate: { temperature: 0.2, maxTokens: 3000 },
+  topic: { temperature: 0.9, maxTokens: 1500 },
+};
+export const OPENROUTER_REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium'];
+
+/** OpenRouter /chat/completions body. models: non-empty array, primary first. */
+export function buildOpenRouterRequest(req, models, { reasoning = 'low' } = {}) {
+  const p = buildPrompt(req);
+  const s = OPENROUTER_TASK_SETTINGS[req.task];
+  return {
+    model: models[0],
+    models,
+    messages: [{ role: 'system', content: p.system }, ...p.messages],
+    temperature: s.temperature,
+    max_tokens: s.maxTokens,
+    response_format: { type: 'json_object' },
+    reasoning: reasoning === 'none' ? { effort: 'none' } : { effort: reasoning, exclude: true },
+    stream: false,
+  };
+}
+
 export const GIGACHAT_DEFAULT_MODELS = { chat: 'GigaChat-2-Max', evaluate: 'GigaChat-2-Max', topic: 'GigaChat-2-Pro' };
 export const GIGACHAT_TASK_SETTINGS = {
   chat: { temperature: 0.5, maxTokens: 1500 },

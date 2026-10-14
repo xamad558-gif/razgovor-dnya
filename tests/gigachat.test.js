@@ -313,8 +313,8 @@ describe('normalizeGigaChat', () => {
 });
 
 describe('createProviderFromEnv', () => {
-  it('defaults to gigachat when AI_PROVIDER is unset, given a key; selects anthropic given ANTHROPIC_API_KEY', () => {
-    const vars1 = { GIGACHAT_AUTH_KEY: 'key' };
+  it('AI_PROVIDER=gigachat selects gigachat, given a key; AI_PROVIDER=anthropic selects anthropic', () => {
+    const vars1 = { AI_PROVIDER: 'gigachat', GIGACHAT_AUTH_KEY: 'key' };
     expect(createProviderFromEnv((k) => vars1[k], { gigachatFetch: vi.fn(), anthropicCreate: vi.fn() }).name).toBe('gigachat');
     const vars2 = { AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'sk-x' };
     expect(createProviderFromEnv((k) => vars2[k], { gigachatFetch: vi.fn(), anthropicCreate: vi.fn() }).name).toBe('anthropic');
@@ -322,7 +322,8 @@ describe('createProviderFromEnv', () => {
 
   it('gigachat without a key, or an unknown provider, gives a not_configured provider and logs once', async () => {
     const log1 = vi.fn();
-    const p1 = createProviderFromEnv(() => undefined, { gigachatFetch: vi.fn(), anthropicCreate: vi.fn(), log: log1 });
+    const vars0 = { AI_PROVIDER: 'gigachat' };
+    const p1 = createProviderFromEnv((k) => vars0[k], { gigachatFetch: vi.fn(), anthropicCreate: vi.fn(), log: log1 });
     await expect(p1.complete()).rejects.toMatchObject({ logStatus: 'provider_not_configured' });
     expect(log1).toHaveBeenCalledTimes(1);
     expect(log1.mock.calls[0][0].missing).toBe('GIGACHAT_AUTH_KEY');
@@ -336,7 +337,7 @@ describe('createProviderFromEnv', () => {
   });
 
   it('GIGACHAT_STRUCTURED=ON (case-insensitive) makes the chat request body include response_format', async () => {
-    const vars = { GIGACHAT_AUTH_KEY: 'key', GIGACHAT_STRUCTURED: 'ON' };
+    const vars = { AI_PROVIDER: 'gigachat', GIGACHAT_AUTH_KEY: 'key', GIGACHAT_STRUCTURED: 'ON' };
     const fetchImpl = vi.fn(async (url) => {
       if (url === GIGACHAT_AUTH_URL) return resJson(200, { access_token: 'tok', expires_at: Date.now() + 30 * 60 * 1000 });
       return chatCompletion();

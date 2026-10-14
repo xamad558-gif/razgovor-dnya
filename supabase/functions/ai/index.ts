@@ -1,9 +1,13 @@
 // Supabase Edge Function "ai": the only place that holds provider secrets.
-// Provider switch (ADR 0003): AI_PROVIDER = gigachat (default) | anthropic. One secret flips providers,
-// no redeploy needed.
+// Provider switch (ADR 0003, ADR 0004): AI_PROVIDER = openrouter (default) | gigachat | anthropic. One secret
+// flips providers, no redeploy needed.
 // Deploy:  supabase functions deploy ai
 // Secrets:
-//   AI_PROVIDER              gigachat (default) | anthropic
+//   AI_PROVIDER              openrouter (default) | gigachat | anthropic
+//   OPENROUTER_API_KEY       required when AI_PROVIDER=openrouter (openrouter.ai/keys, a free key)
+//   OPENROUTER_MODELS        optional comma list, replaces the default for every task
+//   OPENROUTER_MODEL[_CHAT|_EVALUATE|_TOPIC]   optional per-task model override (comma list)
+//   OPENROUTER_REASONING     optional: none|minimal|low (default)|medium
 //   GIGACHAT_AUTH_KEY        required when AI_PROVIDER=gigachat (developers.sber.ru Authorization key)
 //   GIGACHAT_SCOPE           optional, default GIGACHAT_API_PERS
 //   GIGACHAT_MODEL[_CHAT|_EVALUATE|_TOPIC]   optional model overrides
@@ -73,17 +77,24 @@ async function anthropicCreate(body: Record<string, unknown>) {
   }
 }
 
+// Plain fetch, default trust: the OpenRouter provider never gets the GigaChat CA-pinned client (O3/S9).
+const openrouterFetch = (url: string, init: RequestInit) => fetch(url, init);
+
 const provider = createProviderFromEnv((k: string) => Deno.env.get(k), {
+  openrouterFetch,
   gigachatFetch,
   anthropicCreate,
   log: (e: Record<string, unknown>) => console.error(JSON.stringify({ level: 'error', ...e })),
 });
 
 const structuredRaw = (Deno.env.get('GIGACHAT_STRUCTURED') ?? '').trim().toLowerCase();
+// deno-lint-ignore no-explicit-any
+const reasoning = (provider as any).reasoning;
 console.log(JSON.stringify({
   level: 'info', msg: 'ai provider', provider: provider.name,
   models: { chat: provider.modelFor('chat'), evaluate: provider.modelFor('evaluate'), topic: provider.modelFor('topic') },
   structured: structuredRaw === 'on' || structuredRaw === 'true' || structuredRaw === '1',
+  reasoning: provider.name === 'openrouter' ? reasoning : undefined,
   ca_client: !!caClient,
 }));
 

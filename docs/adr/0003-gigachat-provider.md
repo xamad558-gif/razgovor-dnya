@@ -1,6 +1,8 @@
 # ADR 0003: GigaChat as the conversation provider (Anthropic kept behind a switch)
 
-**Status:** Accepted (Oct 2026)
+**Status:** Accepted (Oct 2026). Superseded as the default by [ADR 0004](0004-openrouter-provider.md) on 14 Oct 2026:
+GigaChat Freemium is no longer offered to new clients (since 1 Sep 2026). The code path is kept behind
+`AI_PROVIDER=gigachat`.
 
 ## Context
 The owner (a student in Moscow) cannot fund the Anthropic API: the account has no credit, a Claude Pro
